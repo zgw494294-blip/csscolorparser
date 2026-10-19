@@ -20,6 +20,7 @@ var (
 	ErrInvalidOklab    = errors.New("invalid oklab")
 	ErrInvalidOklch    = errors.New("invalid oklch")
 	ErrInvalidColor    = errors.New("invalid color")
+	ErrInvalidColorMix = errors.New("invalid color-mix")
 	ErrInvalidFunction = errors.New("invalid function")
 	ErrInvalidUnknown  = errors.New("invalid unknown")
 )
@@ -35,6 +36,17 @@ func Parse(s string) (Color, error) {
 func parseAll(s string, depth int) (Color, error) {
 	if depth > maxRecDepth {
 		return black, ErrInvalidUnknown
+	}
+
+	// CSS Color 5 color-mix(): its arguments are full nested color values
+	// with their own commas, spaces and parentheses, so it is parsed
+	// separately from the absolute and relative color functions.
+
+	if strings.HasPrefix(s, "color-mix(") {
+		if !strings.HasSuffix(s, ")") {
+			return black, ErrInvalidColorMix
+		}
+		return parseColorMix(s, depth)
 	}
 
 	// Parse absolute format

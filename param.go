@@ -96,6 +96,40 @@ func (p *paramParser) slash() bool {
 	return p.separator("/")
 }
 
+// peekByte returns the byte at the current position without consuming it.
+func (p *paramParser) peekByte() (byte, bool) {
+	if p.pos < len(p.s) {
+		return p.s[p.pos], true
+	}
+	return 0, false
+}
+
+// segment consumes and returns everything up to (but not including) the next
+// top-level comma or the end of the string. Parentheses, which may be nested,
+// are tracked, so commas inside functional notations stay part of the segment.
+func (p *paramParser) segment() string {
+	start := p.pos
+	depth := 0
+
+	for p.pos < len(p.s) {
+		switch p.s[p.pos] {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				return p.s[start:p.pos]
+			}
+		}
+		p.pos++
+	}
+
+	return p.s[start:p.pos]
+}
+
 // isEnd reports whether the whole string has been read.
 func (p *paramParser) isEnd() bool {
 	return p.pos >= len(p.s)
